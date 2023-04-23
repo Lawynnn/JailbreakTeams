@@ -16,7 +16,6 @@ public Plugin myinfo =
 };
 
 #define MIN_T_FOR_ONE_CT 3
-int g_iLastJoined = -1;
 
 public void OnPluginStart()
 {
@@ -37,12 +36,16 @@ public int MY_GetTeamCount(int team)
 	return c;
 }
 
-bool IsJoinable(int div = 0)
+int requiredCT()
 {
-	int ct = MY_GetTeamCount(CS_TEAM_CT) - div;
-	int t  = MY_GetTeamCount(CS_TEAM_T) + div;
-	int req_ct = t / MIN_T_FOR_ONE_CT;
-	return t < 3 && ct <= 0 ? true : ct < req_ct;
+	int t  = MY_GetTeamCount(CS_TEAM_T);
+	return t < 3 ? 1 : t / MIN_T_FOR_ONE_CT;
+}
+
+bool IsJoinable()
+{
+	int ct = MY_GetTeamCount(CS_TEAM_CT);
+	return ct < requiredCT();
 }
 
 public Action event_playerspawn(Event event, const char[] name, bool db)
@@ -52,14 +55,10 @@ public Action event_playerspawn(Event event, const char[] name, bool db)
 
 	if (GetClientTeam(client) == CS_TEAM_CT)
 	{
-		if (!IsJoinable(1))
+		if (requiredCT() + 1 < MY_GetTeamCount(CS_TEAM_CT))
 		{
-			if (g_iLastJoined > 0 && g_iLastJoined < MaxClients)
-			{
-				ChangeClientTeam(g_iLastJoined, CS_TEAM_T);
-				PrintToChat(g_iLastJoined, " \x0e(System) \x01Ai fost mutat automat la prizonieri. \x0f(1CT/%iT)", MIN_T_FOR_ONE_CT);
-				g_iLastJoined = -1;
-			}
+			ChangeClientTeam(client, CS_TEAM_T);
+			PrintToChat(client, " \x0e(System) \x01Ai fost mutat automat la prizonieri. \x0f(1CT/%iT)", MIN_T_FOR_ONE_CT);
 		}
 	}
 
@@ -75,18 +74,11 @@ public Action listener_jointeam(int client, const char[] command, int argc)
 	GetCmdArg(1, arg1, sizeof(arg1));
 	int team = StringToInt(arg1);
 
-	if (team == CS_TEAM_CT)
+	if (team == CS_TEAM_CT && !IsJoinable())
 	{
-		if (!IsJoinable())
-		{
-			PrintToChat(client, " \x0e(System) \x01Nu mai sunt locuri libere la gardieni. \x0f(1CT/%iT)", MIN_T_FOR_ONE_CT);
-			return Plugin_Handled;
-		}
-
-		g_iLastJoined = client;
-	}
-	else if (team == CS_TEAM_T && g_iLastJoined == client) {
-		g_iLastJoined = -1;
+		PrintToChat(client, " \x0e(System) \x01Nu mai sunt locuri libere la gardieni. \x0f(1CT/%iT)", MIN_T_FOR_ONE_CT);
+		ChangeClientTeam(client, prevTeam);
+		return Plugin_Handled;
 	}
 
 	return Plugin_Continue;
