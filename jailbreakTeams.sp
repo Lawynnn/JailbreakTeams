@@ -55,7 +55,7 @@ public Action event_playerspawn(Event event, const char[] name, bool db)
 
 	if (GetClientTeam(client) == CS_TEAM_CT)
 	{
-		if (requiredCT() < MY_GetTeamCount(CS_TEAM_CT))
+		if (requiredCT() + 1 < MY_GetTeamCount(CS_TEAM_CT))
 		{
 			ChangeClientTeam(client, CS_TEAM_T);
 			PrintToChat(client, " \x0e(System) \x01Ai fost mutat automat la prizonieri. \x0f(1CT/%iT)", MIN_T_FOR_ONE_CT);
